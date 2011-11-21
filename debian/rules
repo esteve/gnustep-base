@@ -1,0 +1,479 @@
+#! /usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# we're using brace expansion
+SHELL := /bin/bash
+
+include /usr/share/GNUstep/debian/config.mk
+export GNUSTEP_MAKEFILES := $(GS_MAKE_DIR)
+
+##### VERSION NUMBERS #################################
+
+# Objective-C version :
+v_objc := 4:4.6
+
+# GNUstep Make version :
+v_make	:= 2.6.1
+
+# GNUstep Base version :
+v_base	:= $(shell . ./Version; echo $$VERSION)
+
+# GNUstep Base SONAME version :
+sov_base := $(shell . ./Version; echo $$MAJOR_VERSION.$$MINOR_VERSION)
+
+######################################################
+
+
+# These are used for cross-compiling and for saving the configure script
+# from having to guess our platform (since we know it already)
+DEB_BUILD_GNU_TYPE	?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_HOST_GNU_TYPE	?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_HOST_ARCH		?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+# make some files executable
+dummy := $(shell chmod +x configure)
+
+# packages names
+p_com	= gnustep-base-common
+p_run	= gnustep-base-runtime
+p_lib	= libgnustep-base$(sov_base)
+p_dev	= libgnustep-base-dev
+p_dbg	= $(p_lib)-dbg
+p_exam	= gnustep-base-examples
+p_doc	= gnustep-base-doc
+
+# packages temp dirs
+d_com	= $(CURDIR)/debian/$(p_com)
+d_run	= $(CURDIR)/debian/$(p_run)
+d_lib	= $(CURDIR)/debian/$(p_lib)
+d_dev	= $(CURDIR)/debian/$(p_dev)
+d_dbg	= $(CURDIR)/debian/$(p_dbg)
+d_exam	= $(CURDIR)/debian/$(p_exam)
+d_doc	= $(CURDIR)/debian/$(p_doc)
+
+# -----------------------------------------------------------------------------
+# GNUstep SETTINGS
+
+# Dirs
+include /usr/share/quilt/quilt.make
+include /usr/share/GNUstep/debian/config.mk
+ifeq ($(GS_USE_FHS),yes)
+  GS_DTD_DIR=/usr/share/xml/gnustep
+else
+  GS_DTD_DIR=$(GNUSTEP_SYSTEM_LIBRARY)/DTDs
+endif
+
+export GNUSTEP_INSTALLATION_DOMAIN=SYSTEM
+
+# Compiler
+CC		:= $(shell sed -n -e '/^CC *=/s,.*= *\(.*\),\1,p' \
+			$(GS_MAKE_DIR)/config.make)
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+optim := debug=yes
+endif
+
+LDFLAGS := -Wl,-z,defs -Wl,--as-needed
+
+# -----------------------------------------------------------------------------
+
+foo-debug:
+	echo $(sov_base)
+#	echo $(GS_LIBRARY_COMBO)
+#	echo $(GS_CPU) $(GS_OS) $(GS_COMBO_DIR)
+
+
+deb-scripts: debian/deb-scripts-stamp
+clean_files += debian/deb-scripts-stamp
+debian/deb-scripts-stamp:
+	@: # copy Debian scripts
+	b=$(p_run); \
+	for ext in preinst postinst prerm postrm; do \
+	  if [ -f debian/$$b.$$ext.in ]; then \
+	    sed -e 's,@GDOMAP@,$(GNUSTEP_SYSTEM_TOOLS)/gdomap,g' \
+		debian/$$b.$$ext.in > debian/$$b.$$ext; \
+	  fi; \
+	done
+
+	b=$(p_run); \
+	for init in gdomap; do \
+	  if [ -f debian/$$b.$$init.in ]; then \
+	    sed -e 's,@GDOMAP@,$(GNUSTEP_SYSTEM_TOOLS)/gdomap,g' \
+	        -e 's,@GSMAKEFILES@,$(GS_MAKE_DIR),g' \
+	      debian/$$b.$$init.in > debian/$$b.$$init; \
+	  fi; \
+	done
+
+	touch $@
+
+debian/control debian/control.tmp: debian/control.m4 debian/rules
+	@: # debian/control
+	m4 \
+		-DV_OBJC='$(v_objc)' \
+		-DV_MAKE='$(v_make)' \
+		-DSOV_BASE='$(sov_base)' \
+		debian/control.m4 | uniq > $@
+
+# Generate the lintian overrides file automatically, to avoid renames
+# when the SONAME is bumped.
+clean_files += debian/libgnustep-base$(sov_base).lintian-overrides
+debian/libgnustep-base$(sov_base).lintian-overrides: debian/libgnustep-baseN.overrides.m4
+	m4 -DSOV_BASE='$(sov_base)' $< > $@
+
+
+config: debian/configure-stamp
+clean_files += debian/configure-stamp
+debian/configure-stamp: configure
+	dh_testdir
+	dh_autoreconf
+# Override the test for libkvm to ensure that /proc is used on
+# GNU/kFreeBSD even if libvkm-dev is installed (#593898).
+	./configure CC=$(CC) LDFLAGS="$(LDFLAGS)" \
+	    ac_cv_lib_kvm_kvm_getenvv=no \
+	    --enable-libffi \
+	    --disable-openssl \
+	    --disable-bfd \
+	    --build=$(DEB_BUILD_GNU_TYPE) \
+	    --host=$(DEB_HOST_GNU_TYPE) \
+	    --target=$(DEB_HOST_GNU_TYPE)
+
+	touch $@
+
+build: patch build-arch
+
+build-shared: debian/build-shared-stamp
+clean_files += debian/build-shared-stamp
+debian/build-shared-stamp: debian/configure-stamp
+	dh_testdir
+
+	@: # build shared libs
+	$(MAKE) messages=yes $(optim)
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	$(MAKE) check
+endif
+	touch $@
+
+
+# Build architecture indep
+build-doc: debian/build-doc-stamp
+clean_files += debian/build-doc-stamp
+debian/build-doc-stamp: debian/configure-stamp build-shared
+	dh_testdir
+
+	@: # Build main doc.  Make sure autogsdoc can find the libraries.
+	LD_LIBRARY_PATH=$(CURDIR)/Source/obj:$$LD_LIBRARY_PATH \
+	  $(MAKE) -C Documentation messages=yes
+
+	touch $@
+
+
+# Build architecture dep
+build-arch: build-shared build-static build-debug
+
+build-static: debian/build-static-stamp
+clean_files += debian/build-static-stamp
+debian/build-static-stamp: debian/configure-stamp
+	dh_testdir
+	@: # build dev/static libs
+	$(MAKE) -C Source shared=no messages=yes $(optim)
+
+	touch $@
+
+build-debug: debian/build-debug-stamp
+clean_files += debian/build-debug-stamp
+debian/build-debug-stamp: debian/configure-stamp
+	touch $@
+
+
+# Install all
+install: install-indep install-arch
+
+# Install architecture indep
+install-indep: install-doc install-common
+
+install-doc: build-doc
+	dh_testdir
+	dh_testroot
+	dh_prep -i
+
+	@: # Install the indep part of the package
+
+	@: # install main doc
+	$(MAKE) -C Documentation install DESTDIR=$(d_doc)
+
+	@: # remove postscript doc
+	for file in `find $(d_doc)/$(GNUSTEP_SYSTEM_DOC) -name "*.ps"`; do \
+		rm $$file ; done
+
+	@: # rename Info documents with generic/ambiguous names
+	cd $(d_doc)/$(GNUSTEP_SYSTEM_DOC_INFO); \
+	  mv manual.info gs-base.info; \
+	  mv coding-standards.info gs-standards.info
+
+	@: # symlink
+	dh_installdirs -p$(p_doc) usr/share/doc/$(p_com)
+	dh_link -p$(p_doc) \
+	    $(GNUSTEP_SYSTEM_DOC)/Developer usr/share/doc/$(p_com)/Developer \
+	    usr/share/doc/$(p_com)/Developer usr/share/doc/$(p_doc)/Developer
+
+	@: # Prepare example package
+	dh_installdirs -p$(p_exam) usr/share/doc/$(p_com)
+	dh_link -p$(p_exam) usr/share/doc/$(p_com) usr/share/doc/$(p_exam)
+
+install-common: install-shared
+# The files actually get installed in install-shared.
+# We trust the Debian timezones.
+	rm -rf $(d_com)/$(GNUSTEP_SYSTEM_LIBRARY)/Libraries/gnustep-base/Versions/$(sov_base)/Resources/NSTimeZones/zones
+	ln -s /usr/share/zoneinfo \
+	  $(d_com)/$(GNUSTEP_SYSTEM_LIBRARY)/Libraries/gnustep-base/Versions/$(sov_base)/Resources/NSTimeZones/zones
+	ln -s /etc/timezone \
+	  $(d_com)/$(GNUSTEP_SYSTEM_LIBRARY)/Libraries/gnustep-base/Versions/$(sov_base)/Resources/NSTimeZones/localtime
+
+
+# Install architecture dep
+install-arch: install-shared install-static install-debug
+
+install-shared: build-shared
+	dh_testdir -p$(p_run)
+	dh_testroot -p$(p_run)
+	dh_prep -p$(p_run)
+
+	@: # install shared version of libraries
+	$(MAKE) install DESTDIR=$(d_run)
+
+	@: # move arch-indep things to -common
+	dh_prep -p$(p_com)
+	mkdir -p $(d_com)/$(GNUSTEP_SYSTEM_LIBRARY)/Libraries
+	#mkdir -p debian/gnustep-base-runtime//usr/lib/GNUstep/Libraries/gnustep-base
+	mv $(d_run)/$(GNUSTEP_SYSTEM_LIBRARY)/Libraries/gnustep-base $(d_com)/$(GNUSTEP_SYSTEM_LIBRARY)/Libraries
+	#mkdir -p debian/gnustep-base-runtime//usr/lib/GNUstep/DTDs
+	mv $(d_run)/$(GNUSTEP_SYSTEM_LIBRARY)/DTDs $(d_com)/$(GNUSTEP_SYSTEM_LIBRARY)
+	@: # remove headers from shared packages
+	rm -rf $(d_run)/$(GNUSTEP_SYSTEM_HEADERS)
+
+	@: # remove Makefiles/Additional/base.make
+	rm -rf $(d_run)/$(GS_MAKE_DIR)
+
+	rm -f $(d_run)/etc/services.add
+
+	@: # Install gdomap option file
+	dh_installdirs -p$(p_run) etc/default
+	cp -p $(CURDIR)/debian/gdomap.default $(d_run)/etc/default/gdomap
+
+	@: # Move shared lib
+	dh_install -p$(p_lib) \
+	    debian/$(p_run)/$(GNUSTEP_SYSTEM_LIBRARIES)/lib*.so.* $(GNUSTEP_SYSTEM_LIBRARIES)
+	rm -rf debian/$(p_run)/$(GNUSTEP_SYSTEM_LIBRARIES)/lib*
+
+	@: # Doc symlinks
+	dh_link -p$(p_lib) usr/share/doc/$(p_com) usr/share/doc/$(p_lib)
+	dh_link -p$(p_run) usr/share/doc/$(p_com) usr/share/doc/$(p_run)
+
+
+install-static: install-shared build-static
+	dh_testdir -p$(p_dev)
+	dh_testroot -p$(p_dev)
+	dh_prep -p$(p_dev)
+
+# gnustep-make 2.2.x has a bug and does not create the directory.
+	mkdir -p $(d_dev)$(GNUSTEP_SYSTEM_HEADERS)/GNUstepBase
+	@: # install static version of libraries
+	$(MAKE) -C Source install shared=no DESTDIR=$(d_dev)
+
+	@: # Install base.make here (instead of in -runtime)
+	install -m 644 -D base.make $(d_dev)/$(GS_MAKE_DIR)/Additional/base.make
+
+	@: # Remove Resources dir
+	rm -rf $(d_dev)/$(GNUSTEP_SYSTEM_LIBRARY)/Libraries/gnustep-base
+
+	@: # Development symlink
+	dh_link -p$(p_dev) $(GNUSTEP_SYSTEM_LIBRARIES)/libgnustep-base.so.$(sov_base) \
+	    $(GNUSTEP_SYSTEM_LIBRARIES)/libgnustep-base.so
+
+	@: # Doc symlink
+	dh_link -p$(p_dev) usr/share/doc/$(p_com) usr/share/doc/$(p_dev)
+
+install-debug: build-debug
+	dh_testdir -p$(p_dbg)
+	dh_testroot -p$(p_dbg)
+	dh_prep -p$(p_dbg)
+
+	@: # Doc symlink
+	dh_link -p$(p_dbg) usr/share/doc/$(p_com) usr/share/doc/$(p_dbg)
+
+# Build architecture-independent files here.
+binary-indep: debian/control build-indep install-indep
+	dh_testdir -i
+	dh_testroot -i
+	dh_installchangelogs -p$(p_doc) ChangeLog
+	dh_installdocs -p$(p_doc) ANNOUNCE NEWS README
+	dh_installchangelogs -p$(p_com) ChangeLog
+	dh_installdocs -p$(p_com) ANNOUNCE NEWS README
+	gsdh_gnustep -i
+
+	dh_link -i
+
+	dh_installexamples -p$(p_exam) -X.cvsignore -X.gdbinit -X.arch-ids\
+		Examples Version config.mak
+	find $(d_exam) -name '*.m' ! -perm 644 -exec chmod 644 \{\} \;
+
+	dh_compress -i -X.m -XGNUmakefile
+	dh_fixperms -i
+
+	@: # remove empty directories, when all components are in place
+	for d in `find $(d_com) $(d_doc) $(d_exam) -depth -type d -empty 2> /dev/null`; \
+	do \
+	  case $$d in */usr/share/doc*|*/etc) continue; esac; \
+	  while rmdir $$d 2> /dev/null; do d=`dirname $$d`; done; \
+	done
+
+	sed -e 's,@GS_DTD_DIR@,$(GS_DTD_DIR),g' \
+	  debian/gnustep-base-common.xmlcatalogs.in > debian/gnustep-base-common.xmlcatalogs; \
+	dh_installxmlcatalogs -i
+
+	dh_installdeb -i
+	dh_gencontrol -i
+	dh_md5sums -i
+	dh_builddeb -i
+
+# Build architecture-dependent files here.
+binary-arch: debian/control deb-scripts build-arch install-arch debian/libgnustep-base$(sov_base).lintian-overrides
+	dh_testdir -a
+	dh_testroot -a
+	gsdh_gnustep -a
+ifeq ($(GS_USE_FHS),yes)
+	#mkdir -p $(d_lib)/$(GNUSTEP_SYSTEM_LIBRARY)/Bundles
+	#mv $(d_lib)/usr/share/GNUstep/Libraries/gnustep-base/Versions/$(sov_base)/Resources/SSL.bundle $(d_lib)/$(GNUSTEP_SYSTEM_LIBRARY)/Bundles/
+	#dh_link -p$(p_lib) $(GNUSTEP_SYSTEM_LIBRARY)/Bundles/SSL.bundle usr/share/GNUstep/Libraries/gnustep-base/Versions/$(sov_base)/Resources/SSL.bundle
+endif
+	dh_installman -p$(p_run) Tools/gdomap.8 Tools/gsdoc.7 \
+	    Tools/autogsdoc.1 Tools/cvtenc.1 Tools/defaults.1 Tools/gdnc.1 \
+	    Tools/pldes.1 Tools/sfparse.1 Tools/xmlparse.1 \
+	    debian/HTMLLinker.1 debian/make_strings.1
+	dh_lintian -a
+	dh_link -a
+
+	@: # rename pl binary, to avoid conflict with tendra package
+	mv $(d_run)/$(GNUSTEP_SYSTEM_TOOLS)/pl $(d_run)/$(GNUSTEP_SYSTEM_TOOLS)/plio
+
+	@: # pldes manpage documents many programs
+	for i in plio plget plser plmerge plparse pl2link; do \
+	    ln -sf pldes.1 $(d_run)/usr/share/man/man1/$$i.1; \
+	done
+
+	dh_strip -a --dbg-package=$(p_dbg)
+
+	@: # remove empty directories, when all components are in place
+	for d in `find $(d_run) $(d_dev) $(d_dbg) -depth -type d -empty 2> /dev/null`; do \
+	  case $$d in */usr/share/doc*|*/etc) continue; esac; \
+	  while rmdir $$d 2> /dev/null; do d=`dirname $$d`; done; \
+	done
+
+	dh_compress -s
+	dh_fixperms -s
+
+	dh_installinit -p$(p_run) --init-script=gdomap
+
+	@: # Calculate shlib dependencies for -runtime and lib package separatly
+	dh_makeshlibs -p$(p_lib) -V
+	dh_installdeb -p$(p_run)
+	dh_shlibdeps -p$(p_run) -l$(d_lib)/$(GNUSTEP_SYSTEM_LIBRARIES)
+	dh_installdeb -p$(p_lib)
+	dh_shlibdeps -p$(p_lib) -l$(d_lib)/$(GNUSTEP_SYSTEM_LIBRARIES)
+
+	@: # Calculate shlib dependencies for other packages
+	dh_makeshlibs -p$(p_lib) \
+	    -V '$(p_lib) (>= $(v_base)), gnustep-base-runtime (>= $(v_base))'
+	dh_installdeb -a -N$(p_run) -N$(p_lib)
+	dh_shlibdeps -a -N$(p_run) -N$(p_lib) -l$(d_lib)/$(GNUSTEP_SYSTEM_LIBRARIES)
+
+	dh_gencontrol -s
+	dh_md5sums -s
+	dh_builddeb -s
+
+
+# Test that debian/control is up to date
+clean_files += debian/control.tmp
+test-control: debian/control.tmp
+	diff debian/control debian/control.tmp && rm -f debian/control.tmp
+
+
+# Clean
+clean: clean-patched unpatch
+
+clean-patched: test-control
+	dh_testdir
+	dh_testroot
+	dh_autoreconf_clean
+
+	rm -rf Tools/obj Source/obj
+
+#	if config.mak does not exist, then we assume that we don't need to
+#	make clean
+	if [ -e config.mak ]; then \
+	  $(MAKE) -C Documentation/manual clean; \
+	  $(MAKE) -C Documentation clean; \
+	  $(MAKE) clean; \
+	  $(MAKE) -C Documentation/manual distclean; \
+	  $(MAKE) -C Documentation distclean; \
+	  $(MAKE) distclean; \
+	fi
+
+	rm -f Documentation/*html
+	rm -f Documentation/.igsdoc
+	rm -f Documentation/version.texi
+	rm -rf Documentation/{Base,BaseAdditions}
+	rm -rf Documentation/General/General
+	rm -f Documentation/manual/manual.html
+	rm -rf Documentation/BaseTools
+	rm -f Documentation/General/*.html
+	rm -f Documentation/General/.igsdoc
+
+	rm -f debian/gnustep-base-runtime.{pre,post}{inst,rm}
+	rm -f debian/gnustep-base-runtime.gdomap
+	#rm -f debian/gnustep-base-runtime.{init,shlibs,gdomap}
+
+	rm -f Source/{mframe.h,config.h,GSConfig.h}
+	rm -f Source/mframe/config.{log,mak,status}
+
+	rm -f Source/.igsdoc
+	rm -f Source/{Base,BaseAdditions}.{stamp,.gsdoc,html}
+	rm -rf Source/{Base,BaseAdditions}
+	rm -f Source/{Base,BaseAdditions}.gsdoc
+	rm -f Source/Info-gnustep.plist
+
+	rm -f Headers/gnustep/base/o_{array,hash,list,map}_{bas,cbs}.h
+
+	rm -f Source/o_{array,hash,list,map}_{bas,cbs}.m
+	rm -f Source/dynamic-load.h
+
+	rm -rf SSL/SSL.bundle
+	-find -name obj | xargs rm -f
+	rm -f SSL/config.{h,log,mak,status}
+
+	#rm -f Tools/*.{html}
+	rm -f Tools/.igsdoc
+	rm -rf Tools/BaseTools
+
+	rm -f $(clean_files)
+
+	dh_clean
+
+
+# Testing only target
+upstream: build-shared
+	dh_testdir -p$(p_com)
+	dh_testroot -p$(p_com)
+	dh_prep -p$(p_com)
+
+	@: # install shared version of libraries
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/upstream
+
+binary: binary-indep binary-arch
+.PHONY: deb-scripts clean \
+	build build-indep build-arch build-shared build-static build-debug \
+	install install-indep install-arch \
+	install-shared install-static install-debug \
+	binary binary-indep binary-arch

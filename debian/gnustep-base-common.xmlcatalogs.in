@@ -1,0 +1,10 @@
+package;public;-//GNUstep//DTD gsdoc 0.6.5//EN;@GS_DTD_DIR@/gsdoc-0_6_5.dtd
+package;public;-//GNUstep//DTD gsdoc 0.6.6//EN;@GS_DTD_DIR@/gsdoc-0_6_6.dtd
+package;public;-//GNUstep//DTD gsdoc 0.6.7//EN;@GS_DTD_DIR@/gsdoc-0_6_7.dtd
+package;public;-//GNUstep//DTD gsdoc 1.0.0//EN;@GS_DTD_DIR@/gsdoc-1_0_0.dtd
+package;public;-//GNUstep//DTD gsdoc 1.0.1//EN;@GS_DTD_DIR@/gsdoc-1_0_1.dtd
+package;public;-//GNUstep//DTD gsdoc 1.0.2//EN;@GS_DTD_DIR@/gsdoc-1_0_2.dtd
+package;public;-//GNUstep//DTD gsdoc 1.0.3//EN;@GS_DTD_DIR@/gsdoc-1_0_3.dtd
+package;public;-//GNUstep//DTD plist 0.9//EN;@GS_DTD_DIR@/plist-0_9.dtd
+root;public;-//GNUstep//DTD gsdoc
+root;public;-//GNUstep//DTD plist

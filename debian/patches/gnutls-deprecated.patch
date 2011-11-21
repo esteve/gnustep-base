@@ -1,0 +1,34 @@
+2011-05-17  Yavor Doganov  <yavor@gnu.org>
+
+	* Source/GSSocketStream.m ([GSStreamHandler
+          -initWithInput:output]): Replace
+	  `gnutls_protocol_set_priority' with
+	  `gnutls_priority_set_direct'.
+
+
+--- gnustep-base.orig/Source/GSSocketStream.m
++++ gnustep-base/Source/GSSocketStream.m
+@@ -492,21 +492,11 @@
+ 
+   if ([proto isEqualToString: NSStreamSocketSecurityLevelTLSv1] == YES)
+     {
+-      const int proto_prio[4] = {
+-#if	defined(GNUTLS_TLS1_2)
+-        GNUTLS_TLS1_2,
+-#endif
+-        GNUTLS_TLS1_1,
+-        GNUTLS_TLS1_0,
+-        0 };
+-      gnutls_protocol_set_priority (session, proto_prio);
++      gnutls_priority_set_direct (session, "TLS1.2:TLS1.1:TLS1.0", NULL);
+     }
+   if ([proto isEqualToString: NSStreamSocketSecurityLevelSSLv3] == YES)
+     {
+-      const int proto_prio[2] = {
+-        GNUTLS_SSL3,
+-        0 };
+-      gnutls_protocol_set_priority (session, proto_prio);
++      gnutls_priority_set_direct (session, "SSL3.0", NULL);
+     }
+ 
+ /*

@@ -1,0 +1,14 @@
+Document: gnustep-coding-standards
+Title: Coding Standards for GNUstep Libraries
+Author: Adam Fedor
+Abstract: This document explains the official coding standards which
+ developers for GNUstep should follow.  Note that these standards are
+ an addition to the GNU Coding Standards, not a replacement of them.
+Section: Help/Standards
+
+Format: Info
+Index: /usr/share/info/gs-standards.info.gz
+Files: /usr/share/info/gs-standards.info*.gz
+
+Format: PDF
+Files: /usr/share/GNUstep/Documentation/Developer/CodingStandards/coding-standards.pdf

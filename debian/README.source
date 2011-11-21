@@ -1,0 +1,8 @@
+This package uses quilt (in a fairly standard/straightforward way) to
+manage all modifications to the upstream source.  Please see
+
+  /usr/share/doc/quilt/README.source and quilt(1)
+
+for further instructions.
+
+ -- Yavor Doganov <yavor@gnu.org>, Thu,  6 May 2010 09:19:52 +0300

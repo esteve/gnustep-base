@@ -1,0 +1,2 @@
+# The odd ordering is to avoid circular dependency.
+gnustep-base: debian-rules-calls-debhelper-in-odd-order

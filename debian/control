@@ -1,0 +1,137 @@
+Source: gnustep-base
+Section: gnustep
+Priority: optional
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian GNUstep maintainers <pkg-gnustep-maintainers@lists.alioth.debian.org>
+Uploaders: Gürkan Sengün <gurkan@phys.ethz.ch>,
+	   Yavor Doganov <yavor@gnu.org>
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 7),
+	       quilt,
+	       gnustep-make (>= 2.6.1),
+	       libffi-dev,
+	       libxml2-dev,
+	       libxslt1-dev,
+	       libgnutls-dev,
+	       zlib1g-dev,
+	       m4,
+	       libavahi-client-dev,
+	       libicu-dev,
+	       dh-autoreconf
+Build-Depends-Indep: texi2html,
+		     texinfo,
+		     texlive-base,
+		     texlive-latex-base,
+		     xml-core
+Build-Conflicts: libgmp3-dev
+Homepage: http://gnustep.org
+Vcs-Git: git://git.debian.org/pkg-gnustep/gnustep-base.git
+Vcs-Browser: http://git.debian.org/?p=pkg-gnustep/gnustep-base.git
+
+Package: gnustep-base-common
+Architecture: all
+Depends: gnustep-common (>= 2.6.1),
+	 ${misc:Depends},
+	 ${gnustep:Depends}
+Suggests: gnustep-base-doc (>= ${source:Version})
+Description: GNUstep Base library - common files
+ The GNUstep Base Library is a powerful fast library of
+ general-purpose, non-graphical Objective C classes, inspired by the
+ OpenStep API but implementing Apple and GNU additions to the API as
+ well.
+ .
+ This package contains the common files needed by the GNUstep Base library.
+
+Package: gnustep-base-runtime
+Architecture: any
+Depends: gnustep-base-common (>= ${source:Version}),
+	 ${shlibs:Depends},
+	 ${misc:Depends},
+	 ${gnustep:Depends},
+	 lsb-base
+Description: GNUstep Base library - daemons and tools
+ The GNUstep Base Library is a powerful fast library of
+ general-purpose, non-graphical Objective C classes, inspired by the
+ OpenStep API but implementing Apple and GNU additions to the API as
+ well.
+ .
+ This package contains the runtime support files needed by GNUstep
+ applications.
+
+Package: libgnustep-base1.22
+Section: libs
+Architecture: any
+Depends: gnustep-base-common (>= ${source:Version}),
+	 ${shlibs:Depends},
+	 ${misc:Depends},
+	 ${gnustep:Depends}
+Recommends: gnustep-base-runtime
+Description: GNUstep Base library
+ The GNUstep Base Library is a powerful fast library of
+ general-purpose, non-graphical Objective C classes, inspired by the
+ OpenStep API but implementing Apple and GNU additions to the API as
+ well.  It includes for example classes for unicode strings, arrays,
+ dictionaries, sets, byte streams, typed coders, invocations,
+ notifications, notification dispatchers, scanners, tasks, files,
+ networking, threading, remote object messaging support (distributed
+ objects), event loops, loadable bundles, attributed unicode strings,
+ xml, mime, user defaults.
+
+Package: libgnustep-base-dev
+Section: libdevel
+Architecture: any
+Depends: libgnustep-base1.22 (= ${binary:Version}),
+	 gnustep-base-common,
+	 gnustep-base-runtime (>= ${source:Version}),
+	 gnustep-make (>= 2.6.1),
+	 ${misc:Depends},
+	 ${gnustep:Depends}
+Description: GNUstep Base header files and development libraries
+ This package contains the header files and static libraries required
+ to build applications against the GNUstep Base library.
+ .
+ Install this package if you wish to develop your own programs using
+ the GNUstep Base Library.
+
+Package: libgnustep-base1.22-dbg
+Section: debug
+Architecture: any
+Priority: extra
+Depends: gnustep-base-common,
+	 libgnustep-base1.22 (= ${binary:Version}),
+	 gnustep-base-runtime (= ${binary:Version}),
+	 ${misc:Depends},
+	 ${gnustep:Depends}
+Recommends: libobjc3-dbg
+Conflicts: libgnustep-base1.20-dbg
+Description: GNUstep Base library - debugging symbols
+ This package contains the debigging symbols of the GNUstep Base
+ Library.  This package can be used to provide symbol names to a debugger to
+ aid debugging.
+
+Package: gnustep-base-examples
+Architecture: all
+Depends: gnustep-base-common,
+	 ${misc:Depends},
+	 ${gnustep:Depends}
+Recommends: libgnustep-base-dev (= ${source:Version})
+Description: Examples using the GNUstep Base Library
+ The GNUstep Base Library is a powerful fast library of
+ general-purpose, non-graphical Objective C classes, inspired by the
+ OpenStep API but implementing Apple and GNU additions to the API as
+ well.
+ .
+ This is the source for a few example (non-GUI) applications
+ using the GNUstep Base Library.
+
+Package: gnustep-base-doc
+Section: doc
+Architecture: all
+Depends: ${misc:Depends},
+	 ${gnustep:Depends},
+	 dpkg (>= 1.15.4) | install-info
+Recommends: libgnustep-base-dev (>= ${source:Version})
+Description: Documentation for the GNUstep Base Library
+ This package contains the GNUstep Base Library API reference in gsdoc
+ and HTML format, as well as the GNUstep Base programming manual and
+ GNUstep Coding Standards in Info and PDF format.

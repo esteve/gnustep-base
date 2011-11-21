@@ -1,0 +1,10 @@
+Document: gnustep-base-tools
+Title: GNUstep Base Command-line Tools
+Author: Richard Frith-Macdonald
+Abstract: The GNUstep Base Tools are command line utilities that come
+ with the GNUstep Base distribution.
+Section: Programming/Objective-C
+
+Format: HTML
+Index: /usr/share/GNUstep/Documentation/Developer/Tools/Reference/index.html
+Files: /usr/share/GNUstep/Documentation/Developer/Tools/Reference/*.html

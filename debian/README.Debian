@@ -1,0 +1,6 @@
+Note: Due to a conflict with the tendra package, the pl tool for reading and
+writing property lists has been renamed plio in Debian.
+
+ -- Hubert Chathi <uhoreg@debian.org>, Thu, 10 Apr 2008 16:11:44 -0400
+
+See also /usr/share/doc/gnustep-common/README.Debian for additional notes.

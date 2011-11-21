@@ -1,0 +1,63 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          gdomap
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start the GNUstep distributed object mapper
+### END INIT INFO
+
+set -e
+set -u
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+DAEMON=@GDOMAP@
+NAME=gdomap
+DESC="GNUstep distributed object mapper"
+
+PIDFILE=/var/run/$NAME.pid
+
+GDOMAP_ARGS=
+if [ -f /etc/default/gdomap ]; then
+    . /etc/default/gdomap
+fi
+
+. /lib/lsb/init-functions
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	start-stop-daemon --start --oknodo --quiet --exec $DAEMON \
+		-- -I $PIDFILE $GDOMAP_ARGS
+	echo "$NAME."
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+	start-stop-daemon --stop --oknodo --quiet --exec $DAEMON \
+		-- -I $PIDFILE $GDOMAP_ARGS
+	rm -f $PIDFILE
+	echo "$NAME."
+	;;
+  restart|force-reload)
+	echo -n "Restarting $DESC: "
+	start-stop-daemon --stop --oknodo --quiet --exec $DAEMON \
+		-- -I $PIDFILE $GDOMAP_ARGS
+	rm -f $PIDFILE
+	sleep 1
+	start-stop-daemon --start --oknodo --quiet --exec $DAEMON \
+		-- -I $PIDFILE $GDOMAP_ARGS
+	echo "$NAME."
+	;;
+  status)
+	status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+	;;
+  *)
+	N=/etc/init.d/$NAME
+	echo "Usage: $N {start|stop|restart|force-reload|status}" >&2
+	exit 1
+	;;
+esac
+
+exit 0

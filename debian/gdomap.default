@@ -1,0 +1,27 @@
+# Bourne shell compatible script, sourced by /etc/init.d/gdomap to set
+# additional arguments for gdomap.
+#
+#
+# The GNU Distributed Objects name server accepts the options:
+# -C		help about configuration
+# -H		general help
+# -I		pid file to write pid
+# -L name		perform lookup for name then quit.
+# -M name		machine name for -L and -N
+# -N		list all names registered on host
+# -P number	port number required for R option.
+# -R name		register name locally then quit.
+# -T type		port type for L, R and U options -
+#		tcp_gdo, udp_gdo,
+#		tcp_foreign, udp_foreign.
+# -U name		unregister name locally then quit.
+# -a file		use config file for interface list.
+# -c file		use config file for probe.
+# -d		extra debug logging (normally via syslog).
+# -f		avoid fork() to make debugging easy
+# -i seconds	re-probe at this interval (roughly), min 60
+# -p		disable probing for other servers
+#
+# Kill with SIGUSR1 to obtain a dump of all known peers in /tmp/gdomap.dump
+#
+GDOMAP_ARGS="-p"

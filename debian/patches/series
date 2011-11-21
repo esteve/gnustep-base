@@ -1,0 +1,9 @@
+kfreebsd-fake-main.patch
+gnutls-deprecated.patch
+info-direntry.patch
+avoid-nsl-linkage.patch
+avoid-tools-extra-linkage.patch
+pldes-manpage-rename.patch
+manpage-fixes.patch
+autoreconf.patch
+configure_drop_harmful_sed_call.patch
