@@ -67,9 +67,8 @@ endif
 
 export GNUSTEP_INSTALLATION_DOMAIN=SYSTEM
 
-# Compiler
-CC		:= $(shell sed -n -e '/^CC *=/s,.*= *\(.*\),\1,p' \
-			$(GS_MAKE_DIR)/config.make)
+# Compiler. Force clang.
+CC = clang
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 optim := debug=yes
