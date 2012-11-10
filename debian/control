@@ -17,7 +17,8 @@ Build-Depends: debhelper (>= 7),
 	       m4,
 	       libavahi-client-dev,
 	       libicu-dev,
-	       dh-autoreconf
+	       dh-autoreconf,
+	       clang
 Build-Depends-Indep: texi2html,
 		     texinfo,
 		     texlive-base,
