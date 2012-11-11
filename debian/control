@@ -18,7 +18,8 @@ Build-Depends: debhelper (>= 7),
 	       libavahi-client-dev,
 	       libicu-dev,
 	       dh-autoreconf,
-	       clang
+	       clang,
+	       libobjc4-dev
 Build-Depends-Indep: texi2html,
 		     texinfo,
 		     texlive-base,
@@ -103,7 +104,6 @@ Depends: gnustep-base-common,
 	 gnustep-base-runtime (= ${binary:Version}),
 	 ${misc:Depends},
 	 ${gnustep:Depends}
-Recommends: libobjc3-dbg
 Conflicts: libgnustep-base1.20-dbg
 Description: GNUstep Base library - debugging symbols
  This package contains the debigging symbols of the GNUstep Base
